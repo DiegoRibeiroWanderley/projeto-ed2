@@ -1,0 +1,34 @@
+# --- Dataset (baixar do Kaggle; ver README) ---
+# ~640 MB de imagens: não versionar
+images/
+relatorio/
+styles.csv
+myntradataset/
+dataset/
+*.zip
+
+# Credencial da API do Kaggle
+kaggle.json
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ambientes virtuais
+.venv/
+venv/
+env/
+
+# --- Streamlit ---
+.streamlit/secrets.toml
+
+# --- Editores e sistema ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
