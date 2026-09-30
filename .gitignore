@@ -2,6 +2,7 @@
 # ~640 MB de imagens: não versionar
 images/
 relatorio/
+docs/
 styles.csv
 myntradataset/
 dataset/
