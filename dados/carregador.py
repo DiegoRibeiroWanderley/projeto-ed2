@@ -31,6 +31,8 @@ MARCAS_DISTINTAS = ["Lee Cooper"]
 
 
 class Produto:
+    """Um registro do styles.csv. As estruturas guardam referências a ele."""
+
     __slots__ = ("id", "genero", "categoria", "subcategoria", "tipo", "cor",
                  "estacao", "ano", "uso", "nome", "marca", "imagem")
 
@@ -54,6 +56,8 @@ class Produto:
 
 
 class RelatorioCarga:
+    """Contagem de cada caso tratado na carga (requisito D4)."""
+
     def __init__(self):
         self.linhas = 0
         self.reparadas = 0
@@ -83,6 +87,7 @@ def normalizar(texto):
 
 
 def _opcional(valor):
+    """Campo opcional: vazio ou "NA" vira None (exibido como "—")."""
     valor = valor.strip()
     return None if valor in ("", "NA") else valor
 

@@ -15,6 +15,8 @@ class _No:
 
 
 class ListaEncadeada:
+    """Guarda início e fim, para inserir no fim em O(1)."""
+
     def __init__(self, metricas=None):
         self.inicio = None
         self.fim = None
@@ -31,12 +33,14 @@ class ListaEncadeada:
             no = no.prox
 
     def inserir_inicio(self, valor):
+        """Insere no início, em O(1)."""
         self.inicio = _No(valor, self.inicio)
         if self.fim is None:
             self.fim = self.inicio
         self._tamanho += 1
 
     def inserir_fim(self, valor):
+        """Insere no fim, em O(1), usando o ponteiro de fim."""
         no = _No(valor)
         if self.fim is None:
             self.inicio = self.fim = no
@@ -67,7 +71,7 @@ class ListaEncadeada:
                     self.inicio = no.prox
                 else:
                     ant.prox = no.prox
-                if no is self.fim:
+                if no is self.fim:  # removeu o último: o fim recua
                     self.fim = ant
                 self._tamanho -= 1
                 return True

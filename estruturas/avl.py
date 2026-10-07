@@ -16,18 +16,24 @@ class NoAVL:
         self.valor = valor
         self.esq = None
         self.dir = None
-        self.altura = 0
+        self.altura = 0  # folha = 0; guardada no nó para o balanceamento ser O(1)
 
 
 def _alt(no):
+    """Altura de uma subárvore (vazia = -1)."""
     return no.altura if no is not None else -1
 
 
 def _atualizar(no):
+    """Recalcula a altura do nó a partir das alturas dos filhos."""
     no.altura = 1 + max(_alt(no.esq), _alt(no.dir))
 
 
 def _fator(no):
+    """Fator de balanceamento: > 0 pende à esquerda, < 0 à direita.
+
+    A AVL mantém o fator de todo nó em -1, 0 ou 1.
+    """
     return _alt(no.esq) - _alt(no.dir)
 
 
@@ -41,6 +47,7 @@ class AVLTree:
         return self._tamanho
 
     def __contains__(self, chave):
+        """Teste de pertinência sem contar métricas."""
         no = self.raiz
         while no is not None:
             if chave == no.chave:
@@ -50,15 +57,21 @@ class AVLTree:
 
     # ------------------------------------------------------------ rotações
     def _rot_dir(self, y):
+        """Rotação à direita: o filho esquerdo x sobe e y vira filho direito de x.
+
+        A subárvore direita de x passa a ser a esquerda de y. Devolve a nova
+        raiz da subárvore, que o chamador religa ao pai.
+        """
         x = y.esq
         y.esq = x.dir
         x.dir = y
-        _atualizar(y)
+        _atualizar(y)  # y primeiro: agora é filho de x
         _atualizar(x)
         self.metricas.rotacionar()
         return x
 
     def _rot_esq(self, x):
+        """Rotação à esquerda: espelho de _rot_dir."""
         y = x.dir
         x.dir = y.esq
         y.esq = x
@@ -68,6 +81,12 @@ class AVLTree:
         return y
 
     def _balancear(self, no):
+        """Atualiza a altura do nó e, se o fator saiu de [-1, 1], corrige com rotações.
+
+        Pende à esquerda (f > 1): rotação simples à direita (caso
+        esquerda-esquerda) ou dupla, se o filho esquerdo pende à direita.
+        Pende à direita: simétrico. Devolve a nova raiz da subárvore.
+        """
         _atualizar(no)
         f = _fator(no)
         if f > 1:
@@ -82,6 +101,11 @@ class AVLTree:
 
     # ------------------------------------------------------------ busca
     def buscar(self, chave):
+        """Busca comum de BST; a AVL não muda nas buscas.
+
+        Conta duas comparações por nível (igualdade e menor que), como na
+        splay, para a comparação entre as duas ser justa.
+        """
         self.metricas.registrar_operacao()
         no, prof = self.raiz, 0
         while no is not None:
@@ -92,7 +116,7 @@ class AVLTree:
             self.metricas.comparar()
             no = no.esq if chave < no.chave else no.dir
             prof += 1
-        self.metricas.registrar_profundidade(prof - 1)
+        self.metricas.registrar_profundidade(prof - 1)  # último nó visitado
         return None
 
     # ---------------------------------------------------------- inserção
@@ -106,6 +130,10 @@ class AVLTree:
         return self._inseriu
 
     def _inserir(self, no, chave, valor):
+        """Insere na subárvore de `no` e devolve a nova raiz dela.
+
+        Na volta da recursão, cada ancestral do nó novo é rebalanceado.
+        """
         if no is None:
             self._inseriu = True
             return NoAVL(chave, valor)
@@ -131,12 +159,13 @@ class AVLTree:
         return self._removeu
 
     def _remover(self, no, chave):
+        """Remove da subárvore de `no` e devolve a nova raiz dela (rebalanceada)."""
         if no is None:
             return None
         self.metricas.comparar()
         if chave == no.chave:
             self._removeu = True
-            if no.esq is None:
+            if no.esq is None:  # zero ou um filho: o filho toma o lugar do nó
                 return no.dir
             if no.dir is None:
                 return no.esq
@@ -155,6 +184,7 @@ class AVLTree:
         return self._balancear(no)
 
     def _remover_menor(self, no):
+        """Remove o menor nó da subárvore (o sucessor) e rebalanceia na volta."""
         if no.esq is None:
             return no.dir
         no.esq = self._remover_menor(no.esq)
@@ -162,6 +192,7 @@ class AVLTree:
 
     # ---------------------------------------------------------- percursos
     def __iter__(self):
+        """Percurso em ordem (iterativo, com pilha): (chave, valor)."""
         pilha, no = [], self.raiz
         while pilha or no is not None:
             while no is not None:

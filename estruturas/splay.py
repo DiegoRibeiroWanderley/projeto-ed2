@@ -95,13 +95,19 @@ class SplayTree:
             p = x.pai
             g = p.pai
             if g is None:
+                # zig: p é a raiz; uma rotação simples basta
                 self.ultimas_rotacoes.append(("zig", x.chave))
                 self._rotacionar(x)
             elif (x is p.esq) == (p is g.esq):
+                # zig-zig: x e p do mesmo lado; roda p primeiro, depois x.
+                # É essa ordem que diferencia o splay de só subir x rotação
+                # a rotação, e que reduz à metade, aproximadamente, a profundidade
+                # dos nós do caminho percorrido.
                 self.ultimas_rotacoes.append(("zig-zig", x.chave))
                 self._rotacionar(p)
                 self._rotacionar(x)
             else:
+                # zig-zag: x e p de lados opostos; x sobe duas vezes
                 self.ultimas_rotacoes.append(("zig-zag", x.chave))
                 self._rotacionar(x)
                 self._rotacionar(x)

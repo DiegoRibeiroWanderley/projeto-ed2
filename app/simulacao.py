@@ -86,6 +86,7 @@ def media_por_bloco(valores, blocos=50):
 
 
 def _medir_arvore(nome, arvore, seq):
+    """Aplica as buscas da sequência e guarda o custo de cada uma."""
     serie = Serie(nome)
     m = arvore.metricas
     m.zerar()
@@ -101,6 +102,7 @@ def _medir_arvore(nome, arvore, seq):
 
 
 def _medir_skip(nome, skip, seq):
+    """Aplica as buscas da sequência na skip list e guarda o custo de cada uma."""
     serie = Serie(nome)
     m = skip.metricas
     m.zerar()
@@ -130,6 +132,11 @@ def contagem_real(seq, n):
 
 
 def _medir_ranking(seq, n_top=10):
+    """Compara a lista com transposição com uma lista sem autoajuste.
+
+    Mede o custo da busca sequencial em cada uma e quantos do top-10 real
+    (pela contagem) aparecem no top-10 da lista com transposição.
+    """
     transp = ListaTransposicao()
     fixa = ListaEncadeada()  # sem autoajuste: ordem do 1º acesso
     s_transp, s_fixa = Serie("Lista com transposição"), Serie("Lista sem autoajuste")
@@ -161,6 +168,8 @@ def _medir_ranking(seq, n_top=10):
 
 # ------------------------------------------------------------- simulação
 class Resultado:
+    """Tudo o que uma simulação mediu, para a tabela e os gráficos."""
+
     def __init__(self, arvores, skips, ranking, niveis, niveis_populares, promocoes, n_acessos):
         self.arvores = arvores  # [Serie] splay clássica, splay M1, AVL
         self.skips = skips  # [Serie] skip clássica, skip M3

@@ -54,6 +54,8 @@ class NoSkip:
 class SkipList:
     def __init__(self, metricas=None, rng=None, max_nivel=MAX_NIVEL, popularidade=False):
         self.max_nivel = max_nivel
+        # sentinela sem chave, com ponteiros em todos os níveis: toda busca
+        # começa nela, no nível mais alto em uso
         self.cabeca = NoSkip(None, None, max_nivel)
         self.nivel = 1  # quantidade de níveis em uso
         self._tamanho = 0
@@ -68,6 +70,11 @@ class SkipList:
         return self._tamanho
 
     def _sortear_nivel(self):
+        """Joga a moeda até dar coroa: nível k com probabilidade 1/2^k.
+
+        Em média metade dos nós está no nível 2, um quarto no 3 etc., o que
+        dá buscas em O(log n) esperado.
+        """
         nivel = 1
         while nivel < self.max_nivel and self.rng.random() < P:
             nivel += 1
@@ -101,6 +108,8 @@ class SkipList:
         self.ultimo_caminho = []
         atualizar = [self.cabeca] * self.max_nivel
         no = self.cabeca
+        # do nível mais alto para a base: avança enquanto o próximo é menor;
+        # quando passaria do alvo, desce um nível
         for i in range(self.nivel - 1, -1, -1):
             while no.prox[i] is not None:
                 seguinte = no.prox[i]
@@ -118,8 +127,8 @@ class SkipList:
                         # só existe até o nível i: os níveis a promover são > i.
                         self._promover(seguinte, atualizar)
                     return seguinte.valor
-                break
-            atualizar[i] = no
+                break  # o próximo é maior: desce
+            atualizar[i] = no  # predecessor no nível i (usado pela M3)
         self.metricas.registrar_profundidade(len(self.ultimo_caminho))
         return None
 
@@ -161,6 +170,7 @@ class SkipList:
             # níveis novos: o predecessor é a cabeça (já preenchido em atualizar)
             self.nivel = nivel
         novo = NoSkip(chave, valor, nivel)
+        # em cada nível, encaixa o novo entre o predecessor e o sucessor dele
         for i in range(nivel):
             novo.prox[i] = atualizar[i].prox[i]
             atualizar[i].prox[i] = novo
@@ -168,6 +178,7 @@ class SkipList:
         return True
 
     def remover(self, chave):
+        """Remove a chave. Devolve True se removeu."""
         self.metricas.registrar_operacao()
         atualizar = self._predecessores(chave)
         alvo = atualizar[0].prox[0]
@@ -176,8 +187,10 @@ class SkipList:
         self.metricas.comparar()
         if alvo.chave != chave:
             return False
+        # desliga o nó em cada nível em que ele aparece
         for i in range(alvo.nivel):
             atualizar[i].prox[i] = alvo.prox[i]
+        # níveis que ficaram vazios deixam de ser usados
         while self.nivel > 1 and self.cabeca.prox[self.nivel - 1] is None:
             self.nivel -= 1
         self._tamanho -= 1
@@ -191,6 +204,8 @@ class SkipList:
         minimo=(2012,) e maximo=(2015, float("inf")).
         """
         self.metricas.registrar_operacao()
+        # desce pelos níveis até o início do intervalo (O(log n)) e depois
+        # percorre a base, onde estão todos os nós em ordem
         no = self._predecessores(minimo)[0].prox[0]
         while no is not None:
             self.metricas.comparar()
@@ -200,7 +215,10 @@ class SkipList:
             no = no.prox[0]
 
     def pagina(self, minimo, maximo, numero, tamanho):
-        """Página `numero` (0, 1, ...) do intervalo, com `tamanho` itens."""
+        """Página `numero` (0, 1, ...) do intervalo, com `tamanho` itens.
+
+        Os itens das páginas anteriores são percorridos na base e pulados.
+        """
         pular = numero * tamanho
         saida = []
         for item in self.intervalo(minimo, maximo):
@@ -213,12 +231,14 @@ class SkipList:
         return saida
 
     def contar_intervalo(self, minimo, maximo):
+        """Quantos itens há no intervalo (percorre todos eles)."""
         n = 0
         for _ in self.intervalo(minimo, maximo):
             n += 1
         return n
 
     def __iter__(self):
+        """Todos os (chave, valor) em ordem, pela base."""
         no = self.cabeca.prox[0]
         while no is not None:
             yield no.chave, no.valor

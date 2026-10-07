@@ -116,6 +116,7 @@ def grade(produtos, prefixo):
 
 
 def paginador(chave, total):
+    """Botões anterior/próxima; a página atual fica em ss[chave]. Devolve a página."""
     paginas = max(1, -(-total // POR_PAGINA))
     ss[chave] = min(ss[chave], paginas - 1)
     a, b, c = st.columns([1, 2, 1])
@@ -218,6 +219,7 @@ def pagina_populares():
 
 
 def pagina_produto():
+    """Produto aberto e o que a splay, a AVL e a skip list fizeram nesse acesso."""
     ult = ss.ultimo
     if ult is None:
         st.info("Nenhum produto aberto ainda.")
@@ -286,6 +288,7 @@ def pagina_produto():
 
 
 def pagina_estruturas():
+    """Estado atual de cada estrutura (F6), uma aba para cada."""
     st.header("Estado das estruturas")
     aba_splay, aba_skip, aba_rank, aba_tab = st.tabs(
         ["Splay tree", "Skip list", "Lista com transposição", "Tabelas ordenadas"])
@@ -359,6 +362,7 @@ def grafico_linhas(series, atributo, rotulo_y):
         dados[s.nome] = valores
     st.line_chart(dados, x="acesso", y=[s.nome for s in series], x_label="acessos",
                   y_label=rotulo_y)
+    """Gráfico de linhas do atributo de cada série, em médias por bloco de acessos."""
 
 
 def pagina_simulacao():
@@ -371,6 +375,7 @@ def pagina_simulacao():
     params = parametros_simulacao()
     k = ss.get("m1_k", 3)
     if st.button(f"Rodar simulação (M1 com k = {k})", type="primary"):
+    """Simulação clássica × modificada, demonstração ao vivo e métricas da sessão."""
         with st.spinner("Montando estruturas e simulando..."):
             seq = sim.gerar_sequencia(ss.produtos, **params)
             ss.sim = sim.simular(ss.produtos, seq, k=k)
