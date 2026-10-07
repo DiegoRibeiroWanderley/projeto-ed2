@@ -58,8 +58,8 @@ def resultado():
 
 def test_simulacao_mede_todas_as_variantes(resultado):
     nomes = [t["variante"] for t in resultado.tabela()]
-    assert nomes == ["Splay clássica", "Splay M1 (k=3)", "AVL", "Skip list clássica",
-                     "Skip list M3", "Lista com transposição", "Lista sem autoajuste"]
+    assert nomes == ["Splay clássica", "Splay com limiar (k=3)", "AVL", "Skip list clássica",
+                     "Skip list por popularidade", "Lista com transposição", "Lista sem autoajuste"]
     for s in resultado.arvores + resultado.skips:
         assert len(s.comparacoes) == len(s.profundidade) == 6000
 
@@ -79,7 +79,7 @@ def test_m3_promove_populares_e_reduz_comparacoes(resultado):
     classica, m3 = resultado.skips
     assert m3.media(m3.comparacoes) < classica.media(classica.comparacoes)
     niv = resultado.niveis_populares
-    assert sum(niv["Skip list M3"]) > sum(niv["Skip list clássica"])
+    assert sum(niv["Skip list por popularidade"]) > sum(niv["Skip list clássica"])
     assert resultado.promocoes > 0
 
 

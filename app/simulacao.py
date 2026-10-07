@@ -202,18 +202,18 @@ def simular(produtos, seq, k=3, semente=0):
 
     arvores = [
         _medir_arvore("Splay clássica", splay, seq),
-        _medir_arvore(f"Splay M1 (k={k})", splay_m1, seq),
+        _medir_arvore(f"Splay com limiar (k={k})", splay_m1, seq),
         _medir_arvore("AVL", avl, seq),
     ]
     skips = [
         _medir_skip("Skip list clássica", skip, seq),
-        _medir_skip("Skip list M3", skip_m3, seq),
+        _medir_skip("Skip list por popularidade", skip_m3, seq),
     ]
-    niveis = {"Skip list clássica": skip.tamanho_niveis(), "Skip list M3": skip_m3.tamanho_niveis()}
+    niveis = {"Skip list clássica": skip.tamanho_niveis(), "Skip list por popularidade": skip_m3.tamanho_niveis()}
     top = [p for p, _ in contagem_real(seq, 50)]
     niveis_populares = {
         "Skip list clássica": [skip.nivel_de((p.ano, p.id)) for p in top],
-        "Skip list M3": [skip_m3.nivel_de((p.ano, p.id)) for p in top],
+        "Skip list por popularidade": [skip_m3.nivel_de((p.ano, p.id)) for p in top],
     }
     return Resultado(arvores, skips, _medir_ranking(seq), niveis, niveis_populares,
                      skip_m3.promocoes, len(seq))

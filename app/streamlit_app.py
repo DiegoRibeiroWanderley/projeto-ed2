@@ -251,14 +251,14 @@ def pagina_produto():
     m4.metric("Comparações (AVL)", ult["comparacoes_avl"],
               help=f"A mesma busca na AVL chegou à profundidade {ult['prof_avl']}.")
     if ult["m1"] and ult["achou"] and not ult["afunilou"]:
-        st.info(f"**M1 ligada (k = {ult['m1']}):** contador do nó = {ult['contador']}/{ult['m1']}. "
+        st.info(f"**Splay com limiar ligada (k = {ult['m1']}):** contador do nó = {ult['contador']}/{ult['m1']}. "
                 f"Ainda não atingiu o limiar, então a busca foi uma busca comum de BST e a árvore "
                 f"não mudou. Abra de novo mais {ult['m1'] - ult['contador']} vez(es) para afunilar.")
     elif ult["m1"] and ult["afunilou"]:
-        st.success(f"**M1 ligada (k = {ult['m1']}):** o contador atingiu o limiar, o nó foi "
+        st.success(f"**Splay com limiar ligada (k = {ult['m1']}):** o contador atingiu o limiar, o nó foi "
                    "afunilado e o contador voltou a 0.")
     elif ult["m1"] and not ult["achou"]:
-        st.info("**M1 ligada:** busca sem sucesso não afunila.")
+        st.info("**Splay com limiar ligada:** busca sem sucesso não afunila.")
     st.markdown(f"**Passos do splay:** {viz.resumo_rotacoes(ult['rotacoes'])}")
     a, b = st.columns(2)
     with a:
@@ -279,12 +279,12 @@ def pagina_produto():
         m3_.metric("Acessos registrados", ult["skip_acessos"])
         if ult["promocao"]:
             antes, depois = ult["promocao"]
-            st.success(f"**M3:** o produto foi promovido do nível {antes} para o {depois} "
+            st.success(f"**Skip list por popularidade:** o produto foi promovido do nível {antes} para o {depois} "
                        "pela popularidade; as próximas buscas por ele param mais cedo.")
         elif ult["m3"]:
-            st.caption("M3 ligada: nível atual já é ≥ 1 + ⌊log₂(1 + acessos)⌋; sem promoção.")
+            st.caption("Skip list por popularidade ligada: nível atual já é ≥ 1 + ⌊log₂(1 + acessos)⌋; sem promoção.")
         else:
-            st.caption("M3 desligada: o nível foi sorteado na inserção e não muda.")
+            st.caption("Skip list por popularidade desligada: o nível foi sorteado na inserção e não muda.")
 
 
 def pagina_estruturas():
@@ -304,7 +304,7 @@ def pagina_estruturas():
 
     with aba_skip:
         tam = cat.skip.tamanho_niveis()
-        st.caption(f"{len(cat.skip)} nós · {cat.skip.nivel} níveis · promoções por M3: "
+        st.caption(f"{len(cat.skip)} nós · {cat.skip.nivel} níveis · promoções por popularidade: "
                    f"{cat.skip.promocoes} · nós por nível: "
                    + ", ".join(f"n{i}={n}" for i, n in enumerate(tam)))
         st.bar_chart({"nós": tam}, x_label="nível", y_label="nós")
@@ -332,14 +332,23 @@ def pagina_estruturas():
 
 def parametros_simulacao():
     a, b, c = st.columns(3)
-    n = a.number_input("Acessos", 1000, 100000, 20000, step=1000, key="sim_n")
-    pop = b.number_input("Produtos populares", 10, 5000, 500, step=50, key="sim_pop")
-    s = c.slider("Concentração (expoente Zipf)", 0.5, 2.0, 1.0, 0.1, key="sim_s")
+    n = a.number_input("Acessos", 1000, 100000, 20000, step=1000, key="sim_n",
+                       help="Quantas visitas simular no total.")
+    pop = b.number_input("Produtos populares", 10, 5000, 500, step=50, key="sim_pop",
+                         help="Quantos produtos, sorteados do catálogo, concentram as visitas.")
+    s = c.slider("Concentração (expoente Zipf)", 0.5, 2.0, 1.0, 0.1, key="sim_s",
+                  help="Quanto as visitas se concentram nos mais populares. Quanto maior, mais os "
+                       "primeiros do ranking dominam; com 1, o 2º recebe metade das visitas "
+                       "do 1º, o 3º um terço etc.")
     a, b, c = st.columns(3)
     ruido = a.slider("Visitas isoladas", 0.0, 0.9, 0.2, 0.05, key="sim_ruido",
                      help="Fração de acessos a um produto qualquer, fora dos populares.")
-    mudanca = b.checkbox("Trocar os populares na metade", True, key="sim_mudanca")
-    semente = c.number_input("Semente", 0, 9999, 0, key="sim_semente")
+    mudanca = b.checkbox("Trocar os populares na metade", True, key="sim_mudanca",
+                         help="Na segunda metade, outro conjunto de produtos passa a ser o "
+                              "popular, para ver as estruturas se readaptarem.")
+    semente = c.number_input("Semente", 0, 9999, 0, key="sim_semente",
+                             help="Número que fixa o sorteio: a mesma semente gera a mesma sequência "
+                                  "de acessos.")
     return dict(n_acessos=int(n), n_populares=int(pop), s=s, ruido=ruido, mudanca=mudanca,
                 semente=int(semente))
 
@@ -353,6 +362,7 @@ def aplicar_ao_catalogo(n):
 
 
 def grafico_linhas(series, atributo, rotulo_y):
+    """Gráfico de linhas do atributo de cada série, em médias por bloco de acessos."""
     dados = {"acesso": []}
     for s in series:
         valores = sim.media_por_bloco(getattr(s, atributo), 50)
@@ -362,20 +372,19 @@ def grafico_linhas(series, atributo, rotulo_y):
         dados[s.nome] = valores
     st.line_chart(dados, x="acesso", y=[s.nome for s in series], x_label="acessos",
                   y_label=rotulo_y)
-    """Gráfico de linhas do atributo de cada série, em médias por bloco de acessos."""
 
 
 def pagina_simulacao():
+    """Simulação clássica × modificada, demonstração ao vivo e métricas da sessão."""
     st.header("Simulação e métricas")
-    st.caption("F7: gera acessos concentrados em poucos produtos (Zipf) com visitas isoladas "
+    st.caption("Gera acessos concentrados em poucos produtos (Zipf) com visitas isoladas "
                "e aplica a mesma sequência a estruturas novas — clássicas e modificadas — "
-               "montadas com a mesma ordem de inserção (I1–I4).")
+               "montadas com a mesma ordem de inserção.")
     if "produtos" not in ss:
         ss.produtos = [p for _, p in cat.splay]
     params = parametros_simulacao()
     k = ss.get("m1_k", 3)
-    if st.button(f"Rodar simulação (M1 com k = {k})", type="primary"):
-    """Simulação clássica × modificada, demonstração ao vivo e métricas da sessão."""
+    if st.button(f"Rodar simulação (limiar k = {k})", type="primary"):
         with st.spinner("Montando estruturas e simulando..."):
             seq = sim.gerar_sequencia(ss.produtos, **params)
             ss.sim = sim.simular(ss.produtos, seq, k=k)
@@ -383,23 +392,23 @@ def pagina_simulacao():
 
     r = ss.get("sim")
     if r is not None:
-        st.subheader("Resumo (I1, I3)")
+        st.subheader("Resumo")
         st.dataframe(r.tabela(), hide_index=True)
         niv = {n: sum(v) / len(v) for n, v in r.niveis_populares.items()}
         st.markdown(
-            f"- **M3:** {r.promocoes} promoções; nível médio dos 50 mais acessados: "
+            f"- **Skip list por popularidade:** {r.promocoes} promoções; nível médio dos 50 mais acessados: "
             + ", ".join(f"{n} **{m:.1f}**" for n, m in niv.items()) + ".\n"
             f"- **Ranking:** {r.ranking['precisao']:.0%} do top-10 real aparece no top-10 da lista "
             f"com transposição ({r.ranking['tamanho']} produtos distintos visualizados). "
             "A transposição sobe um passo por acesso, então converge devagar.")
-        st.subheader("Profundidade do acesso ao longo do tempo (I2)")
+        st.subheader("Profundidade do acesso ao longo do tempo")
         grafico_linhas(r.arvores, "profundidade", "profundidade média")
         a, b = st.columns(2)
         with a:
-            st.markdown("**Rotações por acesso: splay clássica × M1**")
+            st.markdown("**Rotações por acesso: splay clássica × splay com limiar**")
             grafico_linhas(r.arvores[:2], "rotacoes", "rotações")
         with b:
-            st.markdown("**Comparações por busca: skip list clássica × M3**")
+            st.markdown("**Comparações por busca: skip list clássica × por popularidade**")
             grafico_linhas(r.skips, "comparacoes", "comparações")
         st.markdown("**Custo da busca sequencial no ranking**")
         grafico_linhas(r.ranking["series"], "comparacoes", "comparações")
@@ -415,7 +424,7 @@ def pagina_simulacao():
             st.success(f"{ss.aplicados} acessos aplicados. Raiz da splay: {cat.splay.raiz.chave}.")
 
     st.divider()
-    st.subheader("Métricas desta sessão (I1)")
+    st.subheader("Métricas desta sessão")
     st.caption("Contadores acumulados pelo uso do catálogo desde a carga.")
     linhas = []
     for nome, e in [("Splay", cat.splay), ("AVL", cat.avl), ("Skip list", cat.skip),
@@ -429,7 +438,7 @@ def pagina_simulacao():
     st.dataframe(linhas, hide_index=True)
     prof = cat.splay.metricas.profundidades
     if len(prof) >= 2:
-        st.markdown("**Profundidade dos acessos na splay desta sessão (I2)**")
+        st.markdown("**Profundidade dos acessos na splay desta sessão**")
         st.line_chart({"acesso": list(range(1, len(prof) + 1)), "profundidade": prof},
                       x="acesso", y="profundidade")
 
@@ -439,11 +448,11 @@ with st.sidebar:
     st.title("Acervo de Moda")
     st.radio("Página", PAGINAS, key="pagina")
     st.divider()
-    st.markdown("**Modificações** (seção 5)")
-    m1 = st.toggle("M1 · splay com limiar", key="m1",
+    st.markdown("**Modificações nos algoritmos**")
+    m1 = st.toggle("Splay com limiar de acesso", key="m1",
                    help="Só afunila um nó depois de k acessos a ele.")
     k = st.slider("k (acessos para afunilar)", 2, 10, 3, key="m1_k", disabled=not m1)
-    m3 = st.toggle("M3 · skip list por popularidade", key="m3",
+    m3 = st.toggle("Skip list por popularidade", key="m3",
                    help="Produtos mais acessados sobem de nível na skip list.")
     cat.configurar(k if m1 else None, m3)
     st.divider()

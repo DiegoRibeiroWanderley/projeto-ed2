@@ -160,7 +160,7 @@ def test_app_streamlit_navega_sem_erros():
     ult = at.session_state.ultimo
     assert ult["m1"] == 3 and not ult["afunilou"] and ult["contador"] == 1
     assert ult["promocao"] is not None or ult["skip_nivel"] >= 2  # 1º acesso: alvo nível 2
-    assert any("M1 ligada" in i.value for i in at.info)
+    assert any("Splay com limiar ligada" in i.value for i in at.info)
 
     # simulação pequena + aplicação ao catálogo (F7)
     at.sidebar.radio[0].set_value("Simulação e métricas").run()

@@ -16,7 +16,7 @@ from app.simulacao import gerar_sequencia, media_por_bloco, simular  # noqa: E40
 from dados.carregador import carregar  # noqa: E402
 
 CORES = {"Splay clássica": "#5b7fa6", "AVL": "#8c8c8c", "Skip list clássica": "#5b7fa6",
-         "Skip list M3": "#e8684a", "Lista com transposição": "#e8684a",
+         "Skip list por popularidade": "#e8684a", "Lista com transposição": "#e8684a",
          "Lista sem autoajuste": "#8c8c8c"}
 COR_M1 = "#e8684a"
 N_ACESSOS, N_POPULARES, K = 20000, 500, 3
@@ -63,11 +63,11 @@ def main():
     # 1. cenário principal: Zipf com ruído e troca dos populares no meio
     seq = gerar_sequencia(produtos, N_ACESSOS, N_POPULARES, s=1.0, ruido=0.2, mudanca=True)
     r = simular(produtos, seq, k=K)
-    grafico_series(r.arvores, "profundidade", "Profundidade do acesso ao longo do tempo (I2)",
+    grafico_series(r.arvores, "profundidade", "Profundidade do acesso ao longo do tempo",
                    "profundidade média", saida, "1_profundidade_arvores.png", mudanca=True)
-    grafico_series(r.arvores[:2], "rotacoes", "Rotações por acesso: splay clássica × M1",
+    grafico_series(r.arvores[:2], "rotacoes", "Rotações por acesso: splay clássica × splay com limiar",
                    "rotações", saida, "2_rotacoes_splay.png", mudanca=True)
-    grafico_series(r.skips, "comparacoes", "Comparações por busca: skip list clássica × M3",
+    grafico_series(r.skips, "comparacoes", "Comparações por busca: skip list clássica × por popularidade",
                    "comparações", saida, "3_comparacoes_skip.png", mudanca=True)
     grafico_series(r.ranking["series"], "comparacoes",
                    "Custo da busca sequencial no ranking", "comparações", saida,
@@ -83,7 +83,7 @@ def main():
         ax.bar([nv + (j - 0.5) * largura for nv in range(1, maior + 1)], contagem, largura,
                label=f"{nome} (nível médio {media:.1f})", color=cor(nome))
     ax.set_xticks(range(1, maior + 1))
-    ax.set_title(f"Nível dos 50 produtos mais acessados na skip list ({r.promocoes} promoções por M3)")
+    ax.set_title(f"Nível dos 50 produtos mais acessados na skip list ({r.promocoes} promoções por popularidade)")
     ax.set_xlabel("nível do nó")
     ax.set_ylabel("produtos")
     ax.legend()
@@ -99,19 +99,19 @@ def main():
         print(f"   k={k}: {comp[-1]:.1f} comparações, {rot[-1]:.2f} rotações por acesso")
     fig, ax1 = plt.subplots(figsize=(8, 4))
     ax1.plot(ks, comp, "o-", color="#5b7fa6", label="comparações/acesso")
-    ax1.set_xlabel("limiar k da M1 (k = 1: splay clássica)")
+    ax1.set_xlabel("limiar k da splay (k = 1: splay clássica)")
     ax1.set_ylabel("comparações/acesso", color="#5b7fa6")
     ax2 = ax1.twinx()
     ax2.plot(ks, rot, "s-", color=COR_M1, label="rotações/acesso")
     ax2.set_ylabel("rotações/acesso", color=COR_M1)
-    ax1.set_title("Efeito do limiar k da M1")
+    ax1.set_title("Efeito do limiar k na splay")
     ax1.grid(alpha=0.3)
     salvar(fig, saida, "6_varredura_k.png")
 
     # tabela-resumo
     linhas = ["# Métricas da simulação", "",
               f"{N_ACESSOS} acessos, {N_POPULARES} produtos populares (Zipf s=1), 20% de visitas "
-              "isoladas, troca dos populares na metade. M1 com k = 3.", "",
+              "isoladas, troca dos populares na metade. Splay com limiar k = 3.", "",
               "| variante | comparações/acesso | profundidade média | rotações/acesso | tempo (s) |",
               "|---|---|---|---|---|"]
     for t in r.tabela():
@@ -121,11 +121,11 @@ def main():
     niv = {n: sum(v) / len(v) for n, v in r.niveis_populares.items()}
     linhas += ["", "Na skip list, profundidade = nós visitados antes de achar a chave. Buscas na "
                "AVL não fazem rotações (só inserção/remoção).", "",
-               f"Promoções da M3: {r.promocoes}. Nível médio dos 50 mais acessados: "
+               f"Promoções da skip list por popularidade: {r.promocoes}. Nível médio dos 50 mais acessados: "
                + ", ".join(f"{n} {m:.1f}" for n, m in niv.items()) + ".",
                f"Ranking (transposição): {r.ranking['precisao']:.0%} do top-10 real no top-10 da lista "
                f"({r.ranking['tamanho']} produtos distintos visualizados).", "",
-               "Varredura do k da M1 (sem troca dos populares):", "",
+               "Varredura do limiar k da splay (sem troca dos populares):", "",
                "| k | comparações/acesso | rotações/acesso |", "|---|---|---|"]
     linhas += [f"| {k} | {c:.2f} | {x:.2f} |" for k, c, x in zip(ks, comp, rot)]
     with open(os.path.join(saida, "resumo.md"), "w", encoding="utf-8") as f:
