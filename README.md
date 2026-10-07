@@ -50,5 +50,4 @@ Na interface, as modificações M1 e M3 são ligadas na barra lateral, e a pági
   `simulacao.py` (sequências Zipf e comparação) e `relatorio_metricas.py` (gráficos)
 - `relatorio/` — gráficos e `resumo.md` para a apresentação (gerados por
   `python -m app.relatorio_metricas`; não versionados)
-- `docs/` — texto do trabalho, roteiro da apresentação e roteiro do vídeo
 - `tests/` — testes unitários e de invariantes
