@@ -40,6 +40,14 @@ def caminho_splay(arvore, chave):
     return caminho
 
 
+def no_splay(arvore, chave):
+    """O nó com a chave (ou None), sem afunilar nem contar métricas."""
+    no = arvore.raiz
+    while no is not None and no.chave != chave:
+        no = no.esq if chave < no.chave else no.dir
+    return no
+
+
 def _cor(chave, caminho, alvo):
     if chave == alvo:
         return COR_ALVO

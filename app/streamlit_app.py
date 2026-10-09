@@ -17,7 +17,9 @@ if RAIZ not in sys.path:
     sys.path.insert(0, RAIZ)
 
 import streamlit as st  # noqa: E402
+import streamlit.components.v1 as components  # noqa: E402
 
+from app import animacao as anim  # noqa: E402
 from app import simulacao as sim  # noqa: E402
 from app import visualizacao as viz  # noqa: E402
 from dados.catalogo import Catalogo  # noqa: E402
@@ -29,6 +31,8 @@ PAGINAS = ["Buscar", "Linha do tempo", "Marcas", "Mais populares", "Produto", "E
 
 st.set_page_config(page_title="Acervo de Moda — ED2", layout="wide")
 ss = st.session_state
+# tema do navegador ("dark" ou "light"), para as animações acompanharem o app
+TEMA = st.context.theme.type or "dark"
 
 
 # ------------------------------------------------------------------ estado
@@ -58,7 +62,13 @@ cat = ss.cat
 def abrir(pid):
     """Callback: abre o produto e guarda o que for preciso para desenhar o acesso."""
     caminho = viz.caminho_splay(cat.splay, pid)
-    dot_antes = viz.dot_caminho(cat.splay, caminho)
+    # as animações mostram as estruturas ANTES do acesso: calcula agora,
+    # antes de o splay e a promoção da skip list mudarem a forma delas
+    desenho_splay = anim.quadros_splay(cat.splay, pid)
+    no_antes = viz.no_splay(cat.splay, pid)
+    p_antes = no_antes.valor if no_antes is not None else None
+    anim_skip = (anim.html_busca_skip_animada(cat.skip, (p_antes.ano, p_antes.id), TEMA)[0]
+                 if p_antes is not None and p_antes.ano is not None else None)
     pos_antes = cat.ranking.posicao(pid)
     ms, ma, mk = cat.splay.metricas, cat.avl.metricas, cat.skip.metricas
     c0, r0, ca0, ck0 = ms.comparacoes, ms.rotacoes, ma.comparacoes, mk.comparacoes
@@ -69,7 +79,6 @@ def abrir(pid):
         "produto": produto,
         "achou": produto is not None,
         "caminho": caminho,
-        "dot_antes": dot_antes,
         "rotacoes": list(cat.splay.ultimas_rotacoes),
         "comparacoes": ms.comparacoes - c0,
         "n_rotacoes": ms.rotacoes - r0,
@@ -86,8 +95,22 @@ def abrir(pid):
         "skip_nivel": no_skip.nivel if no_skip else None,
         "skip_acessos": no_skip.acessos if no_skip else None,
         "promocao": cat.skip.ultima_promocao if no_skip else None,
+        "anim_skip": anim_skip,
     }
+    ss.ultimo["anim_splay"] = anim.pagina_splay(desenho_splay, _nota_splay(ss.ultimo), TEMA)
     ss.pagina = "Produto"
+
+
+def _nota_splay(ult):
+    """O que aconteceu com a árvore depois da busca (fim da animação)."""
+    if ult["afunilou"] and ult["achou"]:
+        return "Em seguida, o splay leva este nó até a raiz (veja o desenho ao lado)."
+    if ult["afunilou"]:
+        return "O splay leva o último nó visitado até a raiz."
+    if ult["m1"] and ult["achou"]:
+        return (f"Com a splay com limiar, o contador ainda não chegou a k = {ult['m1']}: "
+                "a árvore não muda.")
+    return "Com a splay com limiar, busca sem sucesso não afunila: a árvore não muda."
 
 
 # ------------------------------------------------------------- componentes
@@ -136,15 +159,15 @@ def busca_skip_desenhada(chave_alvo):
 
     Uma coluna por nó que a busca tocou; os trechos pulados viram "⋯ N nós".
     """
-    html, passos = viz.html_busca_skip(cat.skip, chave_alvo)
+    pagina, passos = anim.html_busca_skip_animada(cat.skip, chave_alvo, TEMA)
     avancos = sum(1 for p in passos if p[0] == "avança")
     achou = passos and passos[-1][0] == "achou"
     st.write(f"Busca por {chave_alvo}: {len(passos)} passos — avançou por {avancos} nós "
              f"(amarelo), desceu {sum(1 for p in passos if p[0] == 'desce')} vezes "
              f"{'e achou a chave (vermelho)' if achou else 'e parou no nível 0 (a chave não existe)'}. "
-             "Os números nas células são a ordem dos passos; ✕ = nó comparado que era maior, "
-             "por isso a busca desceu. As colunas cinza resumem os nós que a busca pulou.")
-    st.markdown(html, unsafe_allow_html=True)
+             "Clique em ▶ animar para ver cada comparação e cada descida; os números nas "
+             "células são a ordem dos passos.")
+    components.html(pagina, height=anim.altura_skip(cat.skip), scrolling=True)
     with st.expander("Passo a passo"):
         st.markdown("\n".join(f"- {linha}" for linha in viz.narrar_busca_skip(passos, chave_alvo)))
 
@@ -262,8 +285,8 @@ def pagina_produto():
     st.markdown(f"**Passos do splay:** {viz.resumo_rotacoes(ult['rotacoes'])}")
     a, b = st.columns(2)
     with a:
-        st.markdown("**Antes — caminho da busca** (vermelho = alvo, triângulos = subárvores não visitadas)")
-        st.graphviz_chart(ult["dot_antes"])
+        st.markdown("**Antes — a busca, passo a passo** (triângulos = subárvores não visitadas)")
+        components.html(ult["anim_splay"], height=anim.ALTURA_SPLAY)
     with b:
         if ult["afunilou"]:
             st.markdown("**Depois — topo da árvore** (o nó acessado virou a raiz)")
@@ -285,6 +308,9 @@ def pagina_produto():
             st.caption("Skip list por popularidade ligada: nível atual já é ≥ 1 + ⌊log₂(1 + acessos)⌋; sem promoção.")
         else:
             st.caption("Skip list por popularidade desligada: o nível foi sorteado na inserção e não muda.")
+        if ult["anim_skip"]:
+            st.markdown("**A busca na skip list, passo a passo** (antes de uma eventual promoção)")
+            components.html(ult["anim_skip"], height=anim.altura_skip(cat.skip), scrolling=True)
 
 
 def pagina_estruturas():
@@ -301,6 +327,12 @@ def pagina_estruturas():
         st.graphviz_chart(viz.dot_topo_arvore(cat.splay.raiz, niveis,
                                               ult["caminho"] if ult else (),
                                               ult["id"] if ult else None))
+        st.markdown("**Animar uma busca** (só mostra o caminho: a árvore não é afunilada)")
+        padrao = ult["id"] if ult else cat.splay.raiz.chave
+        pid_anim = st.number_input("id a buscar", min_value=0, step=1, value=padrao,
+                                   key="anim_splay_id")
+        components.html(anim.html_busca_splay(cat.splay, int(pid_anim), tema=TEMA),
+                        height=anim.ALTURA_SPLAY)
 
     with aba_skip:
         tam = cat.skip.tamanho_niveis()
